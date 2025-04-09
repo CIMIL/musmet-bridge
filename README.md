@@ -18,3 +18,19 @@ The **_pico-bridge_**'s hardware consists of the following components:
 
 ## Debugging
 To debug the project and view serial messages, you will need a DebugProbe (you can also use a Pico as a PicoProbe).
+
+
+## MIDI2OSC Mapping
+
+- ✅ **Note On/Off**: Trigger and release notes.
+- ✅ **Pitch Bending**: Adjust pitch dynamically.
+- ✅ **Control Changes (CC)**: Modify parameters such as volume, pan, or modulation.
+- ✅ **Aftertouch**: Respond to pressure applied to keys after they are pressed.
+
+- ❌ **Program Change**: Switch instrument or patch presets.
+- ❌ **System Exclusive (SysEx)**: Manufacturer-specific messages for advanced device control.
+- ❌ **MIDI Time Code (MTC)**: Synchronize playback with other devices.
+- ❌ **Polyphonic Aftertouch**: Individual pressure sensitivity for each note.
+- ❌ **Song Select**: Choose a specific song in a sequence.
+- ❌ **Song Position Pointer**: Indicate a specific position in a song for playback.
+- ❌ **System Real-Time Messages**: Clock, start, stop, and continue for synchronization.

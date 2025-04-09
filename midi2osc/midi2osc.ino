@@ -91,8 +91,8 @@ static void onControlChange(Channel channel, byte controller, byte value)
     char address[12];
     snprintf(address, sizeof(address), "/cc%d", (int)channel);
     OSCMessage msg(address);
-    msg.add(note);
-    msg.add(velocity);
+    msg.add(controller);
+    msg.add(value);
     msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
     udp.send(udpMessage);  // Send the message over UDP
     msg.empty();  // Free space occupied by message
@@ -107,11 +107,27 @@ static void onProgramChange(Channel channel, byte program)
 static void onAftertouch(Channel channel, byte value)
 {
     Serial1.printf("C%u: AT=%u\r\n", channel, value);
+    char address[12];
+    snprintf(address, sizeof(address), "/after%d", (int)channel);
+    OSCMessage msg(address);
+    msg.add(value);
+    msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+    udp.send(udpMessage);  // Send the message over UDP
+    msg.empty();  // Free space occupied by message
+    udpMessage.flush();
 }
 
 static void onPitchBend(Channel channel, int value)
 {
     Serial1.printf("C%u: PB=%d\r\n", channel, value);
+    char address[12];
+    snprintf(address, sizeof(address), "/pitch%d", (int)channel);
+    OSCMessage msg(address);
+    msg.add(value);
+    msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+    udp.send(udpMessage);  // Send the message over UDP
+    msg.empty();  // Free space occupied by message
+    udpMessage.flush();
 }
 
 static void onSysEx(byte * array, unsigned size)
