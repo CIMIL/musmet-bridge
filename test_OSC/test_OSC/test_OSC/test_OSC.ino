@@ -2,11 +2,13 @@
 #include <AsyncUDP.h>
 #include <OSCMessage.h>
 
+// WIFI Config
 const char* ssid = "AndroidAP46E6";
 const char* password = "gregorio";
 IPAddress outIp(192, 168, 185, 156);
 const unsigned int outPort = 5005;
 
+// UDP Client object
 AsyncUDP udp;
 AsyncUDPMessage udpMessage;
 
