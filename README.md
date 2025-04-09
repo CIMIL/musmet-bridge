@@ -7,7 +7,7 @@ These OSC messages can then be sent to a VR/XR musical ecosystem (e.g., PatchWor
 The hardware consists of the following components:
 
 - **Raspberry Pi Pico W**: Serves both as the MIDI host and as the OSC client, handling communication and processing.
-- **Breakout Board**: Provides a stable power supply to the Raspberry Pi Pico and connected peripherals.
+- **Breakout Board**: Provides a stable power supply to the Raspberry Pi Pico and connected MIDI devices.
 
 ## Features
 
