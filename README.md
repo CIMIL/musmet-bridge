@@ -22,10 +22,11 @@ To debug the project and view serial messages, you will need a DebugProbe (you c
 
 ## MIDI2OSC Mapping
 
-- ✅ **Note On/Off**: Trigger and release notes.
-- ✅ **Pitch Bending**: Adjust pitch dynamically.
-- ✅ **Control Changes (CC)**: Modify parameters such as volume, pan, or modulation.
-- ✅ **Aftertouch**: Respond to pressure applied to keys after they are pressed.
+- ✅ **Note On**: Trigger notes (_/note{channel} ({pitch}, {velocity})_, for example: `/note1 (60, 80)`).
+- ✅ **Note Off**: Release notes (_/noteoff{channel} ({pitch}, {zero_velocity})_, for example: `/noteoff1 (60, 0)`).
+- ✅ **Pitch Bending**: Adjust pitch dynamically (_/pitch{channel} ({value})_, for example: `/pitch4 (7249)`).
+- ✅ **Control Changes (CC)**: Modify parameters such as volume, pan, or modulation (_/cc{channel} ({controller}, {value})_, for example: `/cc3 (13, 120)`).
+- ✅ **Aftertouch**: Respond to pressure applied to keys after they are pressed (_/after{channel} ({value})_, for example: `/after4 (40)`).
 
 - ❌ **Program Change**: Switch instrument or patch presets.
 - ❌ **System Exclusive (SysEx)**: Manufacturer-specific messages for advanced device control.
