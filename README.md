@@ -4,16 +4,17 @@ Hardware and software solution that let's you use your MIDI devices in a _**Musi
 These OSC messages can then be sent to a VR/XR musical ecosystem (e.g., PatchWorld) or other compatible platforms.
 
 ## Hardware
-The hardware consists of the following components:
+The **_pico-bridge_**'s hardware consists of the following components:
 
 - **Raspberry Pi Pico W**: Serves both as the MIDI host and as the OSC client, handling communication and processing.
-- **Breakout Board**: Provides a stable power supply to the Raspberry Pi Pico and connected MIDI devices.
+- **USB-to-microUSB adapter**: USB-A cables are the most common.
+- **Breakout Board**: Provides a stable 5V power supply to the Pico and connected MIDI devices.
 
 ## Features
 
-- **MIDI Host Functionality**: Connect any class-compliant MIDI device to the Raspberry Pi Pico W.
-- **OSC Message Mapping**: Translate MIDI input into OSC messages for seamless integration with PatchWorld.
+- **MIDI Host Functionality**: Connect any class-compliant MIDI device to the _pico-Bridge_.
+- **OSC Message Mapping**: Translate MIDI input into OSC messages for seamless integration with PatchWorld or any other musical metaverse ecosystem.
 - **Customizable Mapping**: Modify the MIDI-to-OSC mapping to suit your specific needs.
 
 ## Debugging
-To debug the project and view serial messages, you will need a Debug Probe (you can use a RPi Pico).
+To debug the project and view serial messages, you will need a DebugProbe (you can also use a Pico as a PicoProbe).
