@@ -2,9 +2,10 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 #include "index.h"
+// #include <DNSServer.h> 
 
 // Uncomment this line when using Debugprobe/Picoprobe
-// #define UPLOAD_METHOD_DEBUGPROBE
+#define UPLOAD_METHOD_DEBUGPROBE
 
 #ifdef UPLOAD_METHOD_DEBUGPROBE
   #define DEBUG_SERIAL Serial1
@@ -14,6 +15,9 @@
 
 const char *ssid = "PicoW_AP"; // AP SSID
 const char *password = "12345678"; // AP Password
+
+// const byte DNS_PORT = 53;
+// DNSServer dnsServer;
 
 WebServer server(80);
 
@@ -114,10 +118,15 @@ void setup() {
   }
 
   // Set up Soft AP
+  // WiFi.setHostname("picobridge");
   WiFi.softAP(ssid, password);
   DEBUG_SERIAL.println("Access Point started");
   DEBUG_SERIAL.print("AP IP address: ");
   DEBUG_SERIAL.println(WiFi.softAPIP());
+  // DEBUG_SERIAL.println(WiFi.getHostname());
+
+  // Start DNS server to redirect all domains to our IP
+  // dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
 
   // Web server routes
   server.on("/", handleRoot);
@@ -131,6 +140,7 @@ void setup() {
 
 void loop() {
   if (little_started){
+    // dnsServer.processNextRequest();
     server.handleClient();
   }
 }
