@@ -1,7 +1,7 @@
 #if !defined(USE_TINYUSB_HOST) || !defined(USE_TINYUSB)
 #error "Please use the Menu to select Tools->USB Stack: Adafruit TinyUSB Host"
 #else
-#warning "All Serial Monitor Output is on Serial1"
+#warning "All Serial Monitor Output is on Serial1."
 #endif
 
 #include "EZ_USB_MIDI_HOST.h"
