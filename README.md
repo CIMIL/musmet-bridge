@@ -1,10 +1,10 @@
-# Musical Metaverse _pico_-Bridge
+# Musical Metaverse ***pico*Bridge**
 
-Hardware and software solution that let's you use your MIDI devices in a _**Musical Metaverse**_. Connect any class-compliant MIDI device and map its MIDI input into OSC messages. 
+Hardware and software solution that lets you use your MIDI devices in a _**Musical Metaverse**_. Connect any class-compliant MIDI device and map its MIDI input into OSC messages. 
 These OSC messages can then be sent to a VR/XR musical ecosystem (e.g., PatchWorld) or other compatible platforms.
 
 ## Hardware
-The **_pico-bridge_**'s hardware consists of the following components:
+The ***pico*Bridge**'s hardware consists of the following components:
 
 - **Raspberry Pi Pico W**: Serves both as the MIDI host and as the OSC client, handling communication and processing.
 - **USB-to-microUSB adapter**: USB-A cables are the most common.
