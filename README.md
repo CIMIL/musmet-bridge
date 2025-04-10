@@ -12,7 +12,7 @@ The ***pico*Bridge**'s hardware consists of the following components:
 
 ## Features
 
-- **MIDI Host Functionality**: Connect any class-compliant MIDI device to the _pico-Bridge_.
+- **MIDI Host Functionality**: Connect any class-compliant MIDI device to the *pico*Bridge.
 - **OSC Message Mapping**: Translate MIDI input into OSC messages for seamless integration with PatchWorld or any other musical metaverse ecosystem.
 - **Customizable Mapping**: Modify the MIDI-to-OSC mapping to suit your specific needs.
 
