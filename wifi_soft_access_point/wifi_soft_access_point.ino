@@ -2,6 +2,7 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 #include "index.h"
+#include "saved.h"
 // #include <DNSServer.h> 
 
 // Uncomment this line when using Debugprobe/Picoprobe
@@ -14,7 +15,7 @@
 #endif
 
 const char *ssid = "PicoW_AP"; // AP SSID
-const char *password = "12345678"; // AP Password
+const char *password = "picobridge"; // AP Password
 
 // const byte DNS_PORT = 53;
 // DNSServer dnsServer;
@@ -64,12 +65,14 @@ void saveConfig(String ssid, String pw, String ip, String port) {
 
 // Serve the main page
 void handleRoot() {
+  DEBUG_SERIAL.println("Serving saved page.");
   String page = webpage;
   page.replace("%CONFIG_ssid%", readConfig(0));
   page.replace("%CONFIG_pw%",   readConfig(1));
   page.replace("%CONFIG_ip%",   readConfig(2));
   page.replace("%CONFIG_port%", readConfig(3));
   server.send(200, "text/html", page);
+  DEBUG_SERIAL.println("Done.");
 }
 
 // Handle saving config
@@ -83,8 +86,16 @@ void handleSave() {
                    server.arg("config_port"));
     }
 
-    server.sendHeader("Location", "/");
-    server.send(303);
+    DEBUG_SERIAL.println("Serving saved page.");
+    String spage = savedPage;
+    spage.replace("%CONFIG_ssid%", readConfig(0));
+    spage.replace("%CONFIG_pw%",   readConfig(1));
+    spage.replace("%CONFIG_ip%",   readConfig(2));
+    spage.replace("%CONFIG_port%", readConfig(3));
+    server.send(200, "text/html", spage);
+    DEBUG_SERIAL.println("Done.");
+    // server.sendHeader("Location", "/");
+    // server.send(303);
 }
 
 // Print to DEBUG_SERIAL

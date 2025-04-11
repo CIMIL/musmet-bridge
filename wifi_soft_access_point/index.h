@@ -1,25 +1,5 @@
 
 // HTML webpage
 const char webpage[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PicoW Config</title>
-</head>
-<body>
-    <h2>Modify Config.txt</h2>
-    <form action="/save" method="POST">
-        <p>SSID:</p>
-        <textarea name="config_ssid" rows="1" cols="30">%CONFIG_ssid%</textarea><br>
-        <p>PWD: </p>
-        <textarea name="config_pw"   rows="1" cols="30">%CONFIG_pw%</textarea><br>
-        <p>IP:  </p>
-        <textarea name="config_ip"   rows="1" cols="30">%CONFIG_ip%</textarea><br>
-        <p>PORT:</p>
-        <textarea name="config_port" rows="1" cols="30">%CONFIG_port%</textarea><br>
-        <input type="submit" value="Save">
-    </form>
-    <button onclick="fetch('/print').then(response => alert('Printed to Serial!'));">Print Config</button>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Config Musmet Midi Bridge</title><style>*{box-sizing:border-box;font-family:Arial,sans-serif}body{padding:15px;text-align:center}.container{max-width:500px;margin:0 auto;border-radius:8px}.section{margin-bottom:20px;border:1px solid #ddd;border-radius:5px;padding:10px}.section-title{padding:8px;text-align:center;margin:-10px -10px 10px -10px;border-radius:5px 5px 0 0;font-weight:700}input[type=text]{width:100%;padding:8px;margin-bottom:15px}button{width:100%;padding:10px;margin-bottom:10px}</style></head><body><div class="container"><h2>Musmet Midi Bridge</h2><form action="/save" method="POST"><div class="section"><div class="section-title">WiFi Network</div><label for="config_ssid">SSID:</label><input type="text" id="config_ssid" name="config_ssid" value="%CONFIG_ssid%"><label for="config_pw">Password:</label><input type="text" id="config_pw" name="config_pw" value="%CONFIG_pw%"></div><div class="section"><div class="section-title">VR Headset</div><label for="config_ip">IP Address:</label><input type="text" id="config_ip" name="config_ip" value="%CONFIG_ip%"><label for="config_port">Port:</label><input type="text" id="config_port" name="config_port" value="%CONFIG_port%"></div><button type="submit">Save Configuration</button><button type="button" class="secondary" onclick="fetch('/print').then(response => alert('Printed to Serial!'));">Print Config to Serial</button></form></div></body></html>
 )rawliteral";
