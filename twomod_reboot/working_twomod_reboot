@@ -1,0 +1,94 @@
+#include <Arduino.h>
+#include <EEPROM.h>
+
+#define UPLOAD_METHOD_DEBUGPROBE
+
+#ifdef UPLOAD_METHOD_DEBUGPROBE
+  #define DEBUG_SERIAL Serial1
+#else
+  #define DEBUG_SERIAL Serial
+#endif
+
+// Pin definitions
+const int LED_PIN = 15;  // Built-in LED on Pico
+
+// Variables for tracking restarts
+const int EEPROM_ADDR = 0;  // EEPROM address to store flash count
+unsigned long flashDelay = 1000;  // Time between flashes (ms)
+
+void setup() {
+  // Initialize serial connection
+  DEBUG_SERIAL.begin(115200);
+
+  while (!DEBUG_SERIAL) yield();
+  DEBUG_SERIAL.println("Serial Initialized!");
+  
+  // Initialize EEPROM
+  EEPROM.begin(4);  // Initialize with at least 4 bytes
+  DEBUG_SERIAL.println("EEPROM initialized");
+  
+  // Initialize LED pin
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+
+  // Read the previous flash count from EEPROM
+  short flashCount = EEPROM.read(EEPROM_ADDR);
+  DEBUG_SERIAL.print("Mode read: ");
+  DEBUG_SERIAL.println(flashCount);
+
+
+  // 5 quick flashes
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(100);
+    digitalWrite(LED_PIN, LOW);
+    delay(100);
+  }
+  delay(1000);
+
+  for (int i = 0; i < 2; i++) {
+    // Turn LED on
+    EEPROM.write(EEPROM_ADDR, i+1);
+    EEPROM.commit();
+    
+    digitalWrite(LED_PIN, HIGH);
+    delay(flashDelay);
+    
+    // Turn LED off
+    digitalWrite(LED_PIN, LOW);
+    delay(flashDelay);
+  }
+  
+}
+
+void loop() {
+  // Main program loop - empty as the logic is handled in setup
+  // Add your main program code here depending on the mode
+  
+  // digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
+  // delay(100);                      // wait for a second
+  // digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
+  // delay(100);                      // wait for a second
+}
+
+void enterMode1() {
+  // Enter Mode 1 operation
+  DEBUG_SERIAL.println("mod1");
+  
+  // Reset mode for next restart
+  EEPROM.write(EEPROM_ADDR, 1);
+  EEPROM.commit();
+  
+  // Add Mode 1 specific functionality here
+}
+
+void enterMode2() {
+  // Enter Mode 2 operation
+  DEBUG_SERIAL.println("mod2:config");
+  
+  // Reset mode for next restart
+  EEPROM.write(EEPROM_ADDR, 1);
+  EEPROM.commit();
+  
+  // Add Mode 2 specific functionality here
+}
