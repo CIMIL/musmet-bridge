@@ -1,14 +1,28 @@
-# Musical Metaverse ***pico*Bridge**
+# MUSMET MIDI Bridge
+(**MUS**ical **MET**averse **MIDI** **Bridge**)
 
 Hardware and software solution that lets you use your MIDI devices in a _**Musical Metaverse**_. Connect any class-compliant MIDI device and map its MIDI input into OSC messages. 
 These OSC messages can then be sent to a VR/XR musical ecosystem (e.g., PatchWorld) or other compatible platforms.
 
+![docs/bridge_proto.jpg](docs/bridge_proto.jpg)
+
 ## Hardware
-The ***pico*Bridge**'s hardware consists of the following components:
+The Bridge's hardware consists of the following components:
 
 - **Raspberry Pi Pico W**: Serves both as the MIDI host and as the OSC client, handling communication and processing.
 - **USB-to-microUSB adapter**: USB-A cables are the most common.
-- **Breakout Board**: Provides a stable 5V power supply to the Pico and connected MIDI devices.
+- **Push button**: Used to reset the Pico W and enter WiFi config mode.
+- **5V power supply**: Powers the Pico W and the connected MIDI device. The Pico W can't be powered through the USB port as it is used for MIDI communication. The power supply must be able to provide enough current for the connected MIDI device ().
+
+## Software
+
+### Arduino Dependencies:
+- [Arduino-Pico](https://github.com/earlephilhower/arduino-pico)
+- [OSC](https://github.com/CNMAT/OSC)
+- [EZ_USB_MIDI_HOST](https://github.com/rppicomidi/EZ_USB_MIDI_HOST)
+
+### IDE Settings
+![Arduino IDE Settings](docs/arduino_IDE_config.jpg)
 
 ## Features
 

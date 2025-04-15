@@ -1,0 +1,469 @@
+#ifndef _OSCMODE_H
+#define _OSCMODE_H
+
+#if !defined(USE_TINYUSB_HOST) || !defined(USE_TINYUSB)
+#error "Please use the Menu to select Tools->USB Stack: Adafruit TinyUSB Host"
+#else
+#warning "All Serial Monitor Output is on DEBUG_SERIAL."
+#endif
+
+#include "EZ_USB_MIDI_HOST.h"
+// WiFi/OSC Headers
+#include <WiFi.h>
+#include <AsyncUDP.h>
+#include <OSCMessage.h>
+
+// WIFI Config (to be read from LittleFS)
+char cconfigSSID[64], cconfigPWD[64], cOutIP[20], cOutPort[20];
+
+// UDP Client object
+AsyncUDP udp;
+AsyncUDPMessage udpMessage;
+
+// USB Host object
+Adafruit_USBH_Host USBHost;
+USING_NAMESPACE_MIDI
+USING_NAMESPACE_EZ_USB_MIDI_HOST
+
+
+RPPICOMIDI_EZ_USB_MIDI_HOST_INSTANCE(usbhMIDI, MidiHostSettingsDefault)
+
+static uint8_t connectedDevAddrs[RPPICOMIDI_TUH_MIDI_MAX_DEV];
+static uint8_t numConnectedDevices = 0;
+
+// return the index of the stored devAddr or -1 if not connected
+static int getConnectedIdx(uint8_t devAddr) {
+  int idx = 0;
+  for (; idx < numConnectedDevices && connectedDevAddrs[idx] != devAddr; idx++) {
+  }
+  return idx < numConnectedDevices ? idx : -1;
+}
+
+/* MIDI IN MESSAGE REPORTING */
+static void onMidiError(int8_t errCode) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("MIDI Errors: %s %s %s\r\n", (errCode & (1UL << ErrorParse)) ? "Parse" : "",
+                      (errCode & (1UL << ErrorActiveSensingTimeout)) ? "Active Sensing Timeout" : "",
+                      (errCode & (1UL << WarningSplitSysEx)) ? "Split SysEx" : "");
+#endif
+}
+
+static void onNoteOff(Channel channel, byte note, byte velocity) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: Note off#%u v=%u\r\n", channel, note, velocity);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/noteoff%d", (int)channel);
+  OSCMessage msg(address);
+  msg.add(note);
+  msg.add(velocity);
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();
+}
+
+static void onNoteOn(Channel channel, byte note, byte velocity) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: Note on#%u v=%u\r\n", channel, note, velocity);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/note%d", (int)channel);
+  OSCMessage msg(address);
+  msg.add(note);
+  msg.add(velocity);
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();
+}
+
+static void onPolyphonicAftertouch(Channel channel, byte note, byte amount) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: PAT#%u=%u\r\n", channel, note, amount);
+#endif
+}
+
+static void onControlChange(Channel channel, byte controller, byte value) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: CC#%u=%u\r\n", channel, controller, value);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/cc%d", (int)channel);
+  OSCMessage msg(address);
+  msg.add(controller);
+  msg.add(value);
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();
+}
+
+static void onProgramChange(Channel channel, byte program) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: Prog=%u\r\n", channel, program);
+#endif
+}
+
+static void onAftertouch(Channel channel, byte value) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: AT=%u\r\n", channel, value);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/after%d", (int)channel);
+  OSCMessage msg(address);
+  msg.add(value);
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();
+}
+
+static void onPitchBend(Channel channel, int value) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: PB=%d\r\n", channel, value);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/pitch%d", (int)channel);
+  OSCMessage msg(address);
+  msg.add(value);
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();
+}
+
+static void onSysEx(byte* array, unsigned size) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("SysEx:\r\n");
+#endif
+  unsigned multipleOf8 = size / 8;
+  unsigned remOf8 = size % 8;
+  for (unsigned idx = 0; idx < multipleOf8; idx++) {
+#ifdef VERBOSE
+    for (unsigned jdx = 0; jdx < 8; jdx++) {
+      DEBUG_SERIAL.printf("%02x ", *array++);
+    }
+    DEBUG_SERIAL.printf("\r\n");
+#endif
+  }
+#ifdef VERBOSE
+  for (unsigned idx = 0; idx < remOf8; idx++) {
+    DEBUG_SERIAL.printf("%02x ", *array++);
+  }
+  DEBUG_SERIAL.printf("\r\n");
+#endif
+}
+
+static void onSMPTEqf(byte data) {
+  uint8_t type = (data >> 4) & 0xF;
+  data &= 0xF;
+  static const char* fps[4] = { "24", "25", "30DF", "30ND" };
+#ifdef VERBOSE
+  switch (type) {
+    case 0: DEBUG_SERIAL.printf("SMPTE FRM LS %u \r\n", data); break;
+    case 1: DEBUG_SERIAL.printf("SMPTE FRM MS %u \r\n", data); break;
+    case 2: DEBUG_SERIAL.printf("SMPTE SEC LS %u \r\n", data); break;
+    case 3: DEBUG_SERIAL.printf("SMPTE SEC MS %u \r\n", data); break;
+    case 4: DEBUG_SERIAL.printf("SMPTE MIN LS %u \r\n", data); break;
+    case 5: DEBUG_SERIAL.printf("SMPTE MIN MS %u \r\n", data); break;
+    case 6: DEBUG_SERIAL.printf("SMPTE HR LS %u \r\n", data); break;
+    case 7: DEBUG_SERIAL.printf("SMPTE HR MS %u FPS:%s\r\n", data & 0x1, fps[(data >> 1) & 3]); break;
+    default:DEBUG_SERIAL.printf("invalid SMPTE data byte %u\r\n", data); break;
+  }
+#endif
+}
+
+static void onSongPosition(unsigned beats) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("SongP=%u\r\n", beats);
+#endif
+}
+
+static void onSongSelect(byte songnumber) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("SongS#%u\r\n", songnumber);
+#endif
+}
+
+static void onTuneRequest() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Tune\r\n");
+#endif
+}
+
+static void onMidiClock() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Clock\r\n");
+#endif
+}
+
+static void onMidiStart() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Start\r\n");
+#endif
+}
+
+static void onMidiContinue() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Cont\r\n");
+#endif
+}
+
+static void onMidiStop() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Stop\r\n");
+#endif
+}
+
+static void onActiveSense() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("ASen\r\n");
+#endif
+}
+
+static void onSystemReset() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("SysRst\r\n");
+#endif
+}
+
+static void onMidiTick() {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("Tick\r\n");
+#endif
+}
+
+static void onMidiInWriteFail(uint8_t devAddr, uint8_t cable, bool fifoOverflow) {
+#ifdef VERBOSE
+  if (fifoOverflow)
+    DEBUG_SERIAL.printf("Dev %u cable %u: MIDI IN FIFO overflow\r\n", devAddr, cable);
+  else
+    DEBUG_SERIAL.printf("Dev %u cable %u: MIDI IN FIFO error\r\n", devAddr, cable);
+#endif
+}
+
+static void registerMidiInCallbacks(uint8_t devAddr, uint8_t midiInCable) {
+  auto dev = usbhMIDI.getDevFromDevAddr(devAddr);
+  if (dev == nullptr)
+    return;  // invalid device address
+  if (midiInCable >= dev->getNumInCables())
+    return;  // invalid MIDI IN cable number
+
+  auto intf = usbhMIDI.getInterfaceFromDeviceAndCable(devAddr, midiInCable);
+  if (intf == nullptr)
+    return;                                               // unexpected error
+  intf->setHandleNoteOff(onNoteOff);                      // 0x80
+  intf->setHandleNoteOn(onNoteOn);                        // 0x90
+  intf->setHandleAfterTouchPoly(onPolyphonicAftertouch);  // 0xA0
+  intf->setHandleControlChange(onControlChange);          // 0xB0
+  intf->setHandleProgramChange(onProgramChange);          // 0xC0
+  intf->setHandleAfterTouchChannel(onAftertouch);         // 0xD0
+  intf->setHandlePitchBend(onPitchBend);                  // 0xE0
+  intf->setHandleSystemExclusive(onSysEx);                // 0xF0, 0xF7
+  intf->setHandleTimeCodeQuarterFrame(onSMPTEqf);         // 0xF1
+  intf->setHandleSongPosition(onSongPosition);            // 0xF2
+  intf->setHandleSongSelect(onSongSelect);                // 0xF3
+  intf->setHandleTuneRequest(onTuneRequest);              // 0xF6
+  intf->setHandleClock(onMidiClock);                      // 0xF8
+  // 0xF9 as 10ms Tick is not MIDI 1.0 standard but implemented in the Arduino MIDI Library
+  intf->setHandleTick(onMidiTick);              // 0xF9
+  intf->setHandleStart(onMidiStart);            // 0xFA
+  intf->setHandleContinue(onMidiContinue);      // 0xFB
+  intf->setHandleStop(onMidiStop);              // 0xFC
+  intf->setHandleActiveSensing(onActiveSense);  // 0xFE
+  intf->setHandleSystemReset(onSystemReset);    // 0xFF
+  intf->setHandleError(onMidiError);
+
+  dev->setOnMidiInWriteFail(onMidiInWriteFail);
+}
+
+/* CONNECTION MANAGEMENT */
+static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("MIDI device at address %u has %u IN cables and %u OUT cables\r\n", devAddr, nInCables, nOutCables);
+#endif
+  int idx = getConnectedIdx(devAddr);
+  if (idx == -1) {
+    // this is expected
+    if (numConnectedDevices >= RPPICOMIDI_TUH_MIDI_MAX_DEV) {
+#ifdef VERBOSE
+      DEBUG_SERIAL.printf("Error: %u is too many connected devices\r\n", numConnectedDevices + 1);
+#endif
+    }
+    connectedDevAddrs[numConnectedDevices++] = devAddr;
+    for (uint8_t inCable = 0; inCable < nInCables; inCable++) {
+      registerMidiInCallbacks(devAddr, inCable);
+    }
+  } else {
+#ifdef VERBOSE
+    DEBUG_SERIAL.printf("unexpected device address %u already connected at idx=%d\r\n", devAddr, idx);
+#endif
+  }
+}
+
+static void onMIDIdisconnect(uint8_t devAddr) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("MIDI device at address %u unplugged\r\n", devAddr);
+#endif
+  if (numConnectedDevices == 0) {
+    // this is not expected
+#ifdef VERBOSE
+    DEBUG_SERIAL.printf("got disconnected event with no connected devices\r\n");
+#endif
+    return;
+  }
+  int idx = getConnectedIdx(devAddr);
+  if (idx == -1) {
+    // This is not expected
+#ifdef VERBOSE
+    DEBUG_SERIAL.printf("Disconnected device address %u not found\r\n", devAddr);
+#endif
+  } else {
+    // replace the disconnected device with the last one on the list
+    connectedDevAddrs[idx] = connectedDevAddrs[--numConnectedDevices];
+  }
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("numConnectedDevices=%u\r\n", numConnectedDevices);
+  for (idx = 0; idx < numConnectedDevices; idx++) {
+    DEBUG_SERIAL.printf("connectedDevAddrs[%d]=%u\r\n", idx, connectedDevAddrs[idx]);
+  }
+#endif
+}
+
+/* MAIN LOOP FUNCTIONS */
+
+static void blinkLED(void) {
+  const uint32_t intervalMs = 1000;
+  static uint32_t startMs = 0;
+
+  static bool ledState = false;
+  if (millis() - startMs < intervalMs)
+    return;
+  startMs += intervalMs;
+
+  ledState = !ledState;
+  digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+}
+
+static void sendNextNote() {
+  static uint8_t firstNote = 0x5b;  // Mackie Control rewind
+  static uint8_t lastNote = 0x5f;   // Mackie Control stop
+  static uint8_t offNote = lastNote;
+  static uint8_t onNote = firstNote;
+  // toggle NOTE On, Note Off for the Mackie Control channels 1-8 REC LED
+  const uint32_t intervalMs = 1000;
+  static uint32_t startMs = 0;
+  if (millis() - startMs < intervalMs)
+    return;  // not enough time
+  startMs += intervalMs;
+  for (uint8_t idx = 0; idx < numConnectedDevices; idx++) {
+    uint8_t midiDevAddr = connectedDevAddrs[idx];
+    auto dev = usbhMIDI.getDevFromDevAddr(midiDevAddr);
+    if (dev == nullptr) {
+#ifdef VERBOSE
+      DEBUG_SERIAL.printf("address %u is nullptr\r\n", midiDevAddr);
+#endif
+      return;  // connection status has changed somehow
+    }
+    for (uint8_t outCable = 0; outCable < dev->getNumOutCables(); outCable++) {
+      auto intf = usbhMIDI.getInterfaceFromDeviceAndCable(midiDevAddr, outCable);
+      if (intf == nullptr)
+        return;  // not connected
+      intf->sendNoteOn(offNote, 0, 1);
+      intf->sendNoteOn(onNote, 0x7f, 1);
+    }
+  }
+  if (++offNote > lastNote)
+    offNote = firstNote;
+  if (++onNote > lastNote)
+    onNote = firstNote;
+}
+
+class OscMode {
+public:
+  OscMode() {}
+
+  void setup() {
+      pinMode(LED_BUILTIN, OUTPUT);
+#ifdef VERBOSE
+    while (!DEBUG_SERIAL) ;  // wait for serial port
+    DEBUG_SERIAL.println("\nAttempting to connect to WiFi");
+#endif
+
+    Utils::startLittleFS();  // Start LittleFS
+
+    String configSSID = Utils::readWiFiConfig(Utils::ConfigLine::SSID);
+    String configPWD = Utils::readWiFiConfig(Utils::ConfigLine::PASSWORD);
+    String configIP = Utils::readWiFiConfig(Utils::ConfigLine::IP);
+    String configPort = Utils::readWiFiConfig(Utils::ConfigLine::PORT);
+
+    configSSID.toCharArray(cconfigSSID, sizeof(cconfigSSID));
+    configPWD.toCharArray(cconfigPWD, sizeof(cconfigPWD));
+    configIP.toCharArray(cOutIP, sizeof(cOutIP));
+    configPort.toCharArray(cOutPort, sizeof(cOutPort));
+
+#ifdef VERBOSE
+    DEBUG_SERIAL.println("Reading from config");
+    DEBUG_SERIAL.print("SSID: \"");
+    DEBUG_SERIAL.print(cconfigSSID);
+    DEBUG_SERIAL.println("\"");
+    DEBUG_SERIAL.print("PWD: \"");
+    DEBUG_SERIAL.print(cconfigPWD);
+    DEBUG_SERIAL.println("\"");
+    DEBUG_SERIAL.print("IP: \"");
+    DEBUG_SERIAL.print(cOutIP);
+    DEBUG_SERIAL.println("\"");
+    DEBUG_SERIAL.print("PORT: \"");
+    DEBUG_SERIAL.print(cOutPort);
+    DEBUG_SERIAL.println("\"");
+#endif
+
+    WiFi.begin(cconfigSSID, cconfigPWD);  // Config WiFi
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+#ifdef VERBOSE
+      DEBUG_SERIAL.print(".");
+#endif
+    }
+#ifdef VERBOSE
+    DEBUG_SERIAL.println("\nConnected to WiFi");
+#endif
+
+    IPAddress outIp;
+    outIp.fromString(cOutIP);  // Convert IP string to IPAddress object
+    unsigned int outPort = atoi(cOutPort);  // Convert port string to unsigned int
+
+    if (udp.connect(outIp, outPort)) {  // Try to send something to the server (to establish the connection)
+#ifdef VERBOSE
+      DEBUG_SERIAL.println("UDP connected");
+      udp.print("/test Hello");
+#endif
+    }
+
+    usbhMIDI.begin(&USBHost, 0, onMIDIconnect, onMIDIdisconnect);
+  }
+
+  void loop() {
+    while (1) {
+      // Update the USB Host
+      USBHost.task();
+
+      // Handle any incoming data; triggers MIDI IN callbacks
+      usbhMIDI.readAll();
+
+      // Do other processing that might generate pending MIDI OUT data
+      sendNextNote();
+
+      // Tell the USB Host to send as much pending MIDI OUT data as possible
+      usbhMIDI.writeFlushAll();
+
+      // Do other non-USB host processing
+      blinkLED();
+    }
+  }
+};
+
+
+
+#endif
