@@ -7,11 +7,16 @@
 #warning "All Serial Monitor Output is on DEBUG_SERIAL."
 #endif
 
-#include "EZ_USB_MIDI_HOST.h"
+// USB MIDI Host
+#include <EZ_USB_MIDI_HOST.h>
+
 // WiFi/OSC Headers
 #include <WiFi.h>
 #include <AsyncUDP.h>
 #include <OSCMessage.h>
+// Read WiFi config from the filesystem
+#include "utils.h"
+
 
 // WIFI Config (to be read from LittleFS)
 char cconfigSSID[64], cconfigPWD[64], cOutIP[20], cOutPort[20];
@@ -25,21 +30,25 @@ Adafruit_USBH_Host USBHost;
 USING_NAMESPACE_MIDI
 USING_NAMESPACE_EZ_USB_MIDI_HOST
 
-
+// Instantiate the EZ_USB_MIDI_HOST object with name "usbhMIDI" using the default "MidiHostSettingsDefault" configuration
 RPPICOMIDI_EZ_USB_MIDI_HOST_INSTANCE(usbhMIDI, MidiHostSettingsDefault)
 
 static uint8_t connectedDevAddrs[RPPICOMIDI_TUH_MIDI_MAX_DEV];
 static uint8_t numConnectedDevices = 0;
 
-// return the index of the stored devAddr or -1 if not connected
-static int getConnectedIdx(uint8_t devAddr) {
-  int idx = 0;
-  for (; idx < numConnectedDevices && connectedDevAddrs[idx] != devAddr; idx++) {
-  }
-  return idx < numConnectedDevices ? idx : -1;
+
+// Send an OSC message with the given address and arguments 
+template <typename... Args>
+inline void sendOSCMessage(const char* address, Args... args) {
+  OSCMessage msg(address); // Create OSC message
+  (msg.add(args), ...);  // Fold expression to add all arguments
+  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
+  udp.send(udpMessage);  // Send the message over UDP
+  msg.empty();           // Free space occupied by message
+  udpMessage.flush();    
 }
 
-/* MIDI IN MESSAGE REPORTING */
+/* MIDI IN MESSAGE MAPPING */
 static void onMidiError(int8_t errCode) {
 #ifdef VERBOSE
   DEBUG_SERIAL.printf("MIDI Errors: %s %s %s\r\n", (errCode & (1UL << ErrorParse)) ? "Parse" : "",
@@ -54,13 +63,7 @@ static void onNoteOff(Channel channel, byte note, byte velocity) {
 #endif
   char address[12];
   snprintf(address, sizeof(address), "/noteoff%d", (int)channel);
-  OSCMessage msg(address);
-  msg.add(note);
-  msg.add(velocity);
-  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
-  udp.send(udpMessage);  // Send the message over UDP
-  msg.empty();           // Free space occupied by message
-  udpMessage.flush();
+  sendOSCMessage(address, note, velocity);  // /noteoff<channel> (<note>, <velocity>)
 }
 
 static void onNoteOn(Channel channel, byte note, byte velocity) {
@@ -69,19 +72,7 @@ static void onNoteOn(Channel channel, byte note, byte velocity) {
 #endif
   char address[12];
   snprintf(address, sizeof(address), "/note%d", (int)channel);
-  OSCMessage msg(address);
-  msg.add(note);
-  msg.add(velocity);
-  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
-  udp.send(udpMessage);  // Send the message over UDP
-  msg.empty();           // Free space occupied by message
-  udpMessage.flush();
-}
-
-static void onPolyphonicAftertouch(Channel channel, byte note, byte amount) {
-#ifdef VERBOSE
-  DEBUG_SERIAL.printf("C%u: PAT#%u=%u\r\n", channel, note, amount);
-#endif
+  sendOSCMessage(address, note, velocity);  // /note<channel> (<note>, <velocity>)
 }
 
 static void onControlChange(Channel channel, byte controller, byte value) {
@@ -90,13 +81,7 @@ static void onControlChange(Channel channel, byte controller, byte value) {
 #endif
   char address[12];
   snprintf(address, sizeof(address), "/cc%d", (int)channel);
-  OSCMessage msg(address);
-  msg.add(controller);
-  msg.add(value);
-  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
-  udp.send(udpMessage);  // Send the message over UDP
-  msg.empty();           // Free space occupied by message
-  udpMessage.flush();
+  sendOSCMessage(address, controller, value);  // /cc<channel> (<controller>, <value>)
 }
 
 static void onProgramChange(Channel channel, byte program) {
@@ -105,32 +90,28 @@ static void onProgramChange(Channel channel, byte program) {
 #endif
 }
 
-static void onAftertouch(Channel channel, byte value) {
-#ifdef VERBOSE
-  DEBUG_SERIAL.printf("C%u: AT=%u\r\n", channel, value);
-#endif
-  char address[12];
-  snprintf(address, sizeof(address), "/after%d", (int)channel);
-  OSCMessage msg(address);
-  msg.add(value);
-  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
-  udp.send(udpMessage);  // Send the message over UDP
-  msg.empty();           // Free space occupied by message
-  udpMessage.flush();
-}
-
 static void onPitchBend(Channel channel, int value) {
 #ifdef VERBOSE
   DEBUG_SERIAL.printf("C%u: PB=%d\r\n", channel, value);
 #endif
   char address[12];
   snprintf(address, sizeof(address), "/pitch%d", (int)channel);
-  OSCMessage msg(address);
-  msg.add(value);
-  msg.send(udpMessage);  // Send OSC message to UDPMessage buffer
-  udp.send(udpMessage);  // Send the message over UDP
-  msg.empty();           // Free space occupied by message
-  udpMessage.flush();
+  sendOSCMessage(address, value);  // /pitch<channel> (<value>,)
+}
+
+static void onAftertouch(Channel channel, byte value) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: AT=%u\r\n", channel, value);
+#endif
+  char address[12];
+  snprintf(address, sizeof(address), "/after%d", (int)channel);
+  sendOSCMessage(address, value); // /after<channel> (<value>,)
+}
+
+static void onPolyphonicAftertouch(Channel channel, byte note, byte amount) {
+#ifdef VERBOSE
+  DEBUG_SERIAL.printf("C%u: PAT#%u=%u\r\n", channel, note, amount);
+#endif
 }
 
 static void onSysEx(byte* array, unsigned size) {
@@ -279,6 +260,14 @@ static void registerMidiInCallbacks(uint8_t devAddr, uint8_t midiInCable) {
 }
 
 /* CONNECTION MANAGEMENT */
+// return the index of the stored devAddr or -1 if not connected
+static int getConnectedIdx(uint8_t devAddr) {
+  int idx = 0;
+  for (; idx < numConnectedDevices && connectedDevAddrs[idx] != devAddr; idx++) {
+  }
+  return idx < numConnectedDevices ? idx : -1;
+}
+
 static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables) {
 #ifdef VERBOSE
   DEBUG_SERIAL.printf("MIDI device at address %u has %u IN cables and %u OUT cables\r\n", devAddr, nInCables, nOutCables);
@@ -331,8 +320,8 @@ static void onMIDIdisconnect(uint8_t devAddr) {
 #endif
 }
 
-/* MAIN LOOP FUNCTIONS */
 
+/* MAIN LOOP FUNCTIONS */
 static void blinkLED(void) {
   const uint32_t intervalMs = 1000;
   static uint32_t startMs = 0;
@@ -346,39 +335,6 @@ static void blinkLED(void) {
   digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
 }
 
-static void sendNextNote() {
-  static uint8_t firstNote = 0x5b;  // Mackie Control rewind
-  static uint8_t lastNote = 0x5f;   // Mackie Control stop
-  static uint8_t offNote = lastNote;
-  static uint8_t onNote = firstNote;
-  // toggle NOTE On, Note Off for the Mackie Control channels 1-8 REC LED
-  const uint32_t intervalMs = 1000;
-  static uint32_t startMs = 0;
-  if (millis() - startMs < intervalMs)
-    return;  // not enough time
-  startMs += intervalMs;
-  for (uint8_t idx = 0; idx < numConnectedDevices; idx++) {
-    uint8_t midiDevAddr = connectedDevAddrs[idx];
-    auto dev = usbhMIDI.getDevFromDevAddr(midiDevAddr);
-    if (dev == nullptr) {
-#ifdef VERBOSE
-      DEBUG_SERIAL.printf("address %u is nullptr\r\n", midiDevAddr);
-#endif
-      return;  // connection status has changed somehow
-    }
-    for (uint8_t outCable = 0; outCable < dev->getNumOutCables(); outCable++) {
-      auto intf = usbhMIDI.getInterfaceFromDeviceAndCable(midiDevAddr, outCable);
-      if (intf == nullptr)
-        return;  // not connected
-      intf->sendNoteOn(offNote, 0, 1);
-      intf->sendNoteOn(onNote, 0x7f, 1);
-    }
-  }
-  if (++offNote > lastNote)
-    offNote = firstNote;
-  if (++onNote > lastNote)
-    onNote = firstNote;
-}
 
 class OscMode {
 public:
@@ -452,18 +408,11 @@ public:
       // Handle any incoming data; triggers MIDI IN callbacks
       usbhMIDI.readAll();
 
-      // Do other processing that might generate pending MIDI OUT data
-      sendNextNote();
-
-      // Tell the USB Host to send as much pending MIDI OUT data as possible
-      usbhMIDI.writeFlushAll();
-
-      // Do other non-USB host processing
+      // Do other non-USB host processing (e.g., blinkLED)
       blinkLED();
     }
   }
 };
 
 
-
-#endif
+#endif // _OSCMODE_H

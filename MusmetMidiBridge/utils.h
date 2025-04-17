@@ -9,23 +9,10 @@
     #define DEBUG_SERIAL Serial
   #endif
 #endif
-#include "twomode.h"
 
-
-
-#if !defined(USE_TINYUSB_HOST) || !defined(USE_TINYUSB)
-#error "Please use the Menu to select Tools->USB Stack: Adafruit TinyUSB Host"
-#else
-#warning "All Serial Monitor Output is on Serial1."
-#endif
-
-#include "EZ_USB_MIDI_HOST.h"
-// WiFi/OSC Headers
-#include <WiFi.h>
-#include <AsyncUDP.h>
-#include <OSCMessage.h>
 
 #include <LittleFS.h> // To read Wifi config from the filesystem
+#include <WiFi.h>
 
 namespace Utils {
 
@@ -59,7 +46,7 @@ enum ConfigLine {
 String readWiFiConfig(int lineNumber) {
   File file = LittleFS.open("/config.txt", "r");
   if (!file) {
-      return "Cannot open config.txt. If this is your first time running the picoBridge, please fill the config and save it.";
+      return "Cannot open config.txt. If this is your first time running the Bridge, please fill the config and save it.";
   }
 
   String line;
@@ -100,14 +87,26 @@ void saveWiFiConfig(String ssid, String pw, String ip, String port) {
   }
 }
 
+
+// List available WiFi options
+String getNetworkOptions(){
+  String options;
+  String savedSSID = readWiFiConfig(SSID);  // Read saved SSID from config.txt
+
+  int numNetworks = WiFi.scanNetworks();
+  for (int i = 0; i < numNetworks; i++) {
+    String currentSSID = WiFi.SSID(i);
+    options += "<option value='" + currentSSID + "'";
+    if (currentSSID == savedSSID) {
+      options += " selected";
+    }
+    options += ">" + currentSSID + "</option>";
+  }
+
+  return options;
+}
+
 } // namespace Utils
 
 
-
-
-
-
-
-
-
-#endif 
+#endif // _UTILS_H 

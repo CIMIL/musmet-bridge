@@ -3,11 +3,13 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include "index.h"
-#include "saved.h"
+#include "index.h" // HTML main page
+#include "saved.h" // HTML saved page
+#include "utils.h" // Read WiFi config from the filesystem
 
-const char *PICO_SSID = "PicoW_AP"; // AP SSID
-const char *PICO_PASSWORD = "picobridge"; // AP Password
+
+const char *PICO_SSID = "PicoW_BRIDGE_Config"; // AP SSID
+const char *PICO_PASSWORD = "picopico"; // AP Password
 
 class ConfigMode { 
   
@@ -23,7 +25,8 @@ class ConfigMode {
     DEBUG_SERIAL.println("Serving root page.");
 #endif
     String page = webpage;
-    page.replace("%CONFIG_ssid%", Utils::readWiFiConfig(Utils::ConfigLine::SSID));
+    page.replace("%NETWORK_OPTIONS%", Utils::getNetworkOptions());
+    //page.replace("%CONFIG_ssid%", Utils::readWiFiConfig(Utils::ConfigLine::SSID));
     page.replace("%CONFIG_pw%",   Utils::readWiFiConfig(Utils::ConfigLine::PASSWORD));
     page.replace("%CONFIG_ip%",   Utils::readWiFiConfig(Utils::ConfigLine::IP));
     page.replace("%CONFIG_port%", Utils::readWiFiConfig(Utils::ConfigLine::PORT));
