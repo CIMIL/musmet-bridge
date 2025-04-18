@@ -93,14 +93,19 @@ String getNetworkOptions(){
   String options;
   String savedSSID = readWiFiConfig(SSID);  // Read saved SSID from config.txt
 
+  std::map<String, int> ssids;
+
   int numNetworks = WiFi.scanNetworks();
   for (int i = 0; i < numNetworks; i++) {
     String currentSSID = WiFi.SSID(i);
-    options += "<option value='" + currentSSID + "'";
-    if (currentSSID == savedSSID) {
-      options += " selected";
+    if (ssids.find(currentSSID) == ssids.end()) { // if currentSSID not it map
+      options += "<option value='" + currentSSID + "'";
+      if (currentSSID == savedSSID) {
+        options += " selected";
+      }
+      options += ">" + currentSSID + "</option>";
+      ssids.insert({currentSSID.c_str(), i}); // add currentSSID to map
     }
-    options += ">" + currentSSID + "</option>";
   }
 
   return options;
