@@ -6,7 +6,7 @@
 // #include <DNSServer.h> 
 
 // Uncomment this line when using Debugprobe/Picoprobe
-#define UPLOAD_METHOD_DEBUGPROBE
+// #define UPLOAD_METHOD_DEBUGPROBE
 
 #ifdef UPLOAD_METHOD_DEBUGPROBE
   #define DEBUG_SERIAL Serial1

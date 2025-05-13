@@ -62,8 +62,10 @@ static void onNoteOff(Channel channel, byte note, byte velocity) {
   DEBUG_SERIAL.printf("C%u: Note off#%u v=%u\r\n", channel, note, velocity);
 #endif
   char address[12];
-  snprintf(address, sizeof(address), "/noteoff%d", (int)channel);
-  sendOSCMessage(address, note, velocity);  // /noteoff<channel> (<note>, <velocity>)
+  snprintf(address, sizeof(address), "/ch%dnoteoff", (int)channel);
+  sendOSCMessage(address, note);  // /ch<channel>noteoff (<note>,)
+  snprintf(address, sizeof(address), "/ch%dnoteoffvalue", (int)channel);
+  sendOSCMessage(address, velocity);  // /ch<channel>noteoffvalue (<velocity>,)
 }
 
 static void onNoteOn(Channel channel, byte note, byte velocity) {
@@ -71,8 +73,10 @@ static void onNoteOn(Channel channel, byte note, byte velocity) {
   DEBUG_SERIAL.printf("C%u: Note on#%u v=%u\r\n", channel, note, velocity);
 #endif
   char address[12];
-  snprintf(address, sizeof(address), "/note%d", (int)channel);
-  sendOSCMessage(address, note, velocity);  // /note<channel> (<note>, <velocity>)
+  snprintf(address, sizeof(address), "/ch%dnote", (int)channel);
+  sendOSCMessage(address, note);  // /ch<channel>note (<note>,)
+  snprintf(address, sizeof(address), "/ch%dnvalue", (int)channel);
+  sendOSCMessage(address, velocity);  // /ch<channel>nvalue (<velocity>,)
 }
 
 static void onControlChange(Channel channel, byte controller, byte value) {
@@ -80,8 +84,10 @@ static void onControlChange(Channel channel, byte controller, byte value) {
   DEBUG_SERIAL.printf("C%u: CC#%u=%u\r\n", channel, controller, value);
 #endif
   char address[12];
-  snprintf(address, sizeof(address), "/cc%d", (int)channel);
-  sendOSCMessage(address, controller, value);  // /cc<channel> (<controller>, <value>)
+  snprintf(address, sizeof(address), "/ch%dcc", (int)channel);
+  sendOSCMessage(address, controller);  // /ch<channel>cc (<controller>,)
+  snprintf(address, sizeof(address), "/ch%dccvalue", (int)channel);
+  sendOSCMessage(address, value);  // /ch<channel>ccvalue (<value>,)
 }
 
 static void onProgramChange(Channel channel, byte program) {
@@ -95,8 +101,8 @@ static void onPitchBend(Channel channel, int value) {
   DEBUG_SERIAL.printf("C%u: PB=%d\r\n", channel, value);
 #endif
   char address[12];
-  snprintf(address, sizeof(address), "/pitch%d", (int)channel);
-  sendOSCMessage(address, value);  // /pitch<channel> (<value>,)
+  snprintf(address, sizeof(address), "/ch%dpitch", (int)channel);
+  sendOSCMessage(address, value);  // /ch<channel>pitch (<value>,)
 }
 
 static void onAftertouch(Channel channel, byte value) {
@@ -259,6 +265,41 @@ static void registerMidiInCallbacks(uint8_t devAddr, uint8_t midiInCable) {
   dev->setOnMidiInWriteFail(onMidiInWriteFail);
 }
 
+static void unregisterMidiInCallbacks(uint8_t devAddr, uint8_t midiInCable){
+  auto dev = usbhMIDI.getDevFromDevAddr(devAddr);
+  if (dev == nullptr)
+    return;  // invalid device address
+  if (midiInCable >= dev->getNumInCables())
+    return;  // invalid MIDI IN cable number
+
+  auto intf = usbhMIDI.getInterfaceFromDeviceAndCable(devAddr, midiInCable);
+  if (intf == nullptr)
+      return;
+  intf->disconnectCallbackFromType(NoteOn);
+  intf->disconnectCallbackFromType(NoteOff);
+  intf->disconnectCallbackFromType(AfterTouchPoly);
+  intf->disconnectCallbackFromType(ControlChange);
+  intf->disconnectCallbackFromType(ProgramChange);
+  intf->disconnectCallbackFromType(AfterTouchChannel);
+  intf->disconnectCallbackFromType(PitchBend);
+  intf->disconnectCallbackFromType(SystemExclusive);
+  intf->disconnectCallbackFromType(TimeCodeQuarterFrame);
+  intf->disconnectCallbackFromType(SongPosition);
+  intf->disconnectCallbackFromType(SongSelect);
+  intf->disconnectCallbackFromType(TuneRequest);
+  intf->disconnectCallbackFromType(Clock);
+  // 0xF9 as 10ms Tick is not MIDI 1.0 standard but implemented in the Arduino MIDI Library
+  intf->disconnectCallbackFromType(Tick);
+  intf->disconnectCallbackFromType(Start);
+  intf->disconnectCallbackFromType(Continue);
+  intf->disconnectCallbackFromType(Stop);
+  intf->disconnectCallbackFromType(ActiveSensing);
+  intf->disconnectCallbackFromType(SystemReset);
+  intf->setHandleError(nullptr);
+    
+  dev->setOnMidiInWriteFail(nullptr);
+}
+
 /* CONNECTION MANAGEMENT */
 // return the index of the stored devAddr or -1 if not connected
 static int getConnectedIdx(uint8_t devAddr) {
@@ -309,6 +350,11 @@ static void onMIDIdisconnect(uint8_t devAddr) {
     DEBUG_SERIAL.printf("Disconnected device address %u not found\r\n", devAddr);
 #endif
   } else {
+    uint8_t nInCables = usbhMIDI.getNumInCables(devAddr);
+    for (uint8_t inCable = 0; inCable < nInCables; inCable++) {
+      unregisterMidiInCallbacks(devAddr, inCable);
+    }
+
     // replace the disconnected device with the last one on the list
     connectedDevAddrs[idx] = connectedDevAddrs[--numConnectedDevices];
   }

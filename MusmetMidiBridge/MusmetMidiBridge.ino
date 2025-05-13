@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
-// #define VERBOSE
-// #define UPLOAD_METHOD_DEBUGPROBE
-#include "utils.h"   // Defines DEBUG_SERIAL
+#define VERBOSE
+#define UPLOAD_METHOD_DEBUGPROBE
+#include "utils.h"   
 #include "twomode.h"
 
 const short LED_PIN = LED_BUILTIN;

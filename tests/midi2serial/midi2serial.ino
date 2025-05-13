@@ -234,6 +234,7 @@ static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables
         for (uint8_t inCable = 0; inCable < nInCables; inCable++) {
             registerMidiInCallbacks(devAddr, inCable);
         }
+        // registerMidiInCallbacks(devAddr, 1);
     }
     else {
         Serial1.printf("unexpected device address %u already connected at idx=%d\r\n", devAddr, idx);
