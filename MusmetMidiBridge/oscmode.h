@@ -50,7 +50,7 @@ inline void sendOSCMessage(const char* address, Args... args) {
 
 /* MIDI IN MESSAGE MAPPING */
 static void onMidiError(int8_t errCode) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("MIDI Errors: %s %s %s\r\n", (errCode & (1UL << ErrorParse)) ? "Parse" : "",
                       (errCode & (1UL << ErrorActiveSensingTimeout)) ? "Active Sensing Timeout" : "",
                       (errCode & (1UL << WarningSplitSysEx)) ? "Split SysEx" : "");
@@ -58,9 +58,10 @@ static void onMidiError(int8_t errCode) {
 }
 
 static void onNoteOff(Channel channel, byte note, byte velocity) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: Note off#%u v=%u\r\n", channel, note, velocity);
 #endif
+  digitalWrite(LED_BUILTIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dnoteoff", (int)channel);
   sendOSCMessage(address, note);  // /ch<channel>noteoff (<note>,)
@@ -69,9 +70,10 @@ static void onNoteOff(Channel channel, byte note, byte velocity) {
 }
 
 static void onNoteOn(Channel channel, byte note, byte velocity) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: Note on#%u v=%u\r\n", channel, note, velocity);
 #endif
+  digitalWrite(LED_BUILTIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dnote", (int)channel);
   sendOSCMessage(address, note);  // /ch<channel>note (<note>,)
@@ -80,9 +82,10 @@ static void onNoteOn(Channel channel, byte note, byte velocity) {
 }
 
 static void onControlChange(Channel channel, byte controller, byte value) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: CC#%u=%u\r\n", channel, controller, value);
-#endif
+#endif  
+  digitalWrite(LED_BUILTIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dcc", (int)channel);
   sendOSCMessage(address, controller);  // /ch<channel>cc (<controller>,)
@@ -91,13 +94,13 @@ static void onControlChange(Channel channel, byte controller, byte value) {
 }
 
 static void onProgramChange(Channel channel, byte program) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: Prog=%u\r\n", channel, program);
 #endif
 }
 
 static void onPitchBend(Channel channel, int value) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: PB=%d\r\n", channel, value);
 #endif
   char address[12];
@@ -106,7 +109,7 @@ static void onPitchBend(Channel channel, int value) {
 }
 
 static void onAftertouch(Channel channel, byte value) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: AT=%u\r\n", channel, value);
 #endif
   char address[12];
@@ -115,26 +118,26 @@ static void onAftertouch(Channel channel, byte value) {
 }
 
 static void onPolyphonicAftertouch(Channel channel, byte note, byte amount) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: PAT#%u=%u\r\n", channel, note, amount);
 #endif
 }
 
 static void onSysEx(byte* array, unsigned size) {
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   DEBUG_SERIAL.printf("SysEx:\r\n");
 #endif
   unsigned multipleOf8 = size / 8;
   unsigned remOf8 = size % 8;
   for (unsigned idx = 0; idx < multipleOf8; idx++) {
-#ifdef VERBOSE
+#if (VERBOSE > 1)
     for (unsigned jdx = 0; jdx < 8; jdx++) {
       DEBUG_SERIAL.printf("%02x ", *array++);
     }
     DEBUG_SERIAL.printf("\r\n");
 #endif
   }
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   for (unsigned idx = 0; idx < remOf8; idx++) {
     DEBUG_SERIAL.printf("%02x ", *array++);
   }
@@ -146,7 +149,7 @@ static void onSMPTEqf(byte data) {
   uint8_t type = (data >> 4) & 0xF;
   data &= 0xF;
   static const char* fps[4] = { "24", "25", "30DF", "30ND" };
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   switch (type) {
     case 0: DEBUG_SERIAL.printf("SMPTE FRM LS %u \r\n", data); break;
     case 1: DEBUG_SERIAL.printf("SMPTE FRM MS %u \r\n", data); break;
@@ -162,67 +165,67 @@ static void onSMPTEqf(byte data) {
 }
 
 static void onSongPosition(unsigned beats) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("SongP=%u\r\n", beats);
 #endif
 }
 
 static void onSongSelect(byte songnumber) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("SongS#%u\r\n", songnumber);
 #endif
 }
 
 static void onTuneRequest() {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("Tune\r\n");
 #endif
 }
 
 static void onMidiClock() {
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   DEBUG_SERIAL.printf("Clock\r\n");
 #endif
 }
 
 static void onMidiStart() {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("Start\r\n");
 #endif
 }
 
 static void onMidiContinue() {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("Cont\r\n");
 #endif
 }
 
 static void onMidiStop() {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("Stop\r\n");
 #endif
 }
 
 static void onActiveSense() {
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   DEBUG_SERIAL.printf("ASen\r\n");
 #endif
 }
 
 static void onSystemReset() {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("SysRst\r\n");
 #endif
 }
 
 static void onMidiTick() {
-#ifdef VERBOSE
+#if (VERBOSE > 1)
   DEBUG_SERIAL.printf("Tick\r\n");
 #endif
 }
 
 static void onMidiInWriteFail(uint8_t devAddr, uint8_t cable, bool fifoOverflow) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   if (fifoOverflow)
     DEBUG_SERIAL.printf("Dev %u cable %u: MIDI IN FIFO overflow\r\n", devAddr, cable);
   else
@@ -310,14 +313,14 @@ static int getConnectedIdx(uint8_t devAddr) {
 }
 
 static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("MIDI device at address %u has %u IN cables and %u OUT cables\r\n", devAddr, nInCables, nOutCables);
 #endif
   int idx = getConnectedIdx(devAddr);
   if (idx == -1) {
     // this is expected
     if (numConnectedDevices >= RPPICOMIDI_TUH_MIDI_MAX_DEV) {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
       DEBUG_SERIAL.printf("Error: %u is too many connected devices\r\n", numConnectedDevices + 1);
 #endif
     }
@@ -325,20 +328,22 @@ static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables
     for (uint8_t inCable = 0; inCable < nInCables; inCable++) {
       registerMidiInCallbacks(devAddr, inCable);
     }
+    // Turn on the LED to indicate that at least one device is connected
+    digitalWrite(LED_BUILTIN, HIGH);
   } else {
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     DEBUG_SERIAL.printf("unexpected device address %u already connected at idx=%d\r\n", devAddr, idx);
 #endif
   }
 }
 
 static void onMIDIdisconnect(uint8_t devAddr) {
-#ifdef VERBOSE
-  DEBUG_SERIAL.printf("MIDI device at address %u unplugged\r\n", devAddr);
+#if (VERBOSE > 0)
+    DEBUG_SERIAL.printf("MIDI device at address %u unplugged\r\n", devAddr);
 #endif
   if (numConnectedDevices == 0) {
     // this is not expected
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     DEBUG_SERIAL.printf("got disconnected event with no connected devices\r\n");
 #endif
     return;
@@ -346,7 +351,7 @@ static void onMIDIdisconnect(uint8_t devAddr) {
   int idx = getConnectedIdx(devAddr);
   if (idx == -1) {
     // This is not expected
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     DEBUG_SERIAL.printf("Disconnected device address %u not found\r\n", devAddr);
 #endif
   } else {
@@ -357,8 +362,12 @@ static void onMIDIdisconnect(uint8_t devAddr) {
 
     // replace the disconnected device with the last one on the list
     connectedDevAddrs[idx] = connectedDevAddrs[--numConnectedDevices];
+    // if the last device was disconnected, turn off the LED
+    if (numConnectedDevices == 0) {
+      digitalWrite(LED_BUILTIN, LOW);
+    }
   }
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.printf("numConnectedDevices=%u\r\n", numConnectedDevices);
   for (idx = 0; idx < numConnectedDevices; idx++) {
     DEBUG_SERIAL.printf("connectedDevAddrs[%d]=%u\r\n", idx, connectedDevAddrs[idx]);
@@ -369,7 +378,7 @@ static void onMIDIdisconnect(uint8_t devAddr) {
 
 /* MAIN LOOP FUNCTIONS */
 static void blinkLED(void) {
-  const uint32_t intervalMs = 1000;
+  const uint32_t intervalMs = [] (uint32_t val) { return val == 0 ? 1000 : 100; }(numConnectedDevices);
   static uint32_t startMs = 0;
 
   static bool ledState = false;
@@ -378,9 +387,12 @@ static void blinkLED(void) {
   startMs += intervalMs;
 
   ledState = !ledState;
-  digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+    if (numConnectedDevices == 0) {
+      digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+    } else {
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
 }
-
 
 class OscMode {
 public:
@@ -388,7 +400,7 @@ public:
 
   void setup() {
       pinMode(LED_BUILTIN, OUTPUT);
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     while (!DEBUG_SERIAL) ;  // wait for serial port
     DEBUG_SERIAL.println("\nAttempting to connect to WiFi");
 #endif
@@ -405,7 +417,7 @@ public:
     configIP.toCharArray(cOutIP, sizeof(cOutIP));
     configPort.toCharArray(cOutPort, sizeof(cOutPort));
 
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     DEBUG_SERIAL.println("Reading from config");
     DEBUG_SERIAL.print("SSID: \"");
     DEBUG_SERIAL.print(cconfigSSID);
@@ -424,11 +436,11 @@ public:
     WiFi.begin(cconfigSSID, cconfigPWD);  // Config WiFi
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-#ifdef VERBOSE
+#if (VERBOSE > 0)
       DEBUG_SERIAL.print(".");
 #endif
     }
-#ifdef VERBOSE
+#if (VERBOSE > 0)
     DEBUG_SERIAL.println("\nConnected to WiFi");
 #endif
 
@@ -437,7 +449,7 @@ public:
     unsigned int outPort = atoi(cOutPort);  // Convert port string to unsigned int
 
     if (udp.connect(outIp, outPort)) {  // Try to send something to the server (to establish the connection)
-#ifdef VERBOSE
+#if (VERBOSE > 0)
       DEBUG_SERIAL.println("UDP connected");
       udp.print("/test Hello");
 #endif
@@ -454,7 +466,7 @@ public:
       // Handle any incoming data; triggers MIDI IN callbacks
       usbhMIDI.readAll();
 
-      // Do other non-USB host processing (e.g., blinkLED)
+      // Other non-MIDI processing (Status LED, etc.)
       blinkLED();
     }
   }

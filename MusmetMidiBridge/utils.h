@@ -2,7 +2,7 @@
 #define _UTILS_H
 
 
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   #ifdef UPLOAD_METHOD_DEBUGPROBE
     #define DEBUG_SERIAL Serial1
   #else

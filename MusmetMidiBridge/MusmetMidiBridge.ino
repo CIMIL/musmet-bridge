@@ -1,7 +1,8 @@
 #include <Arduino.h>
 
-#define VERBOSE
 #define UPLOAD_METHOD_DEBUGPROBE
+#define VERBOSE 1 // define verbosity : {0=No_verbose, 1=verbose, 2=very_verbose}
+
 #include "utils.h"   
 #include "twomode.h"
 
@@ -30,7 +31,7 @@ void setup() {
   
   pinMode(LED_PIN, OUTPUT);
 
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   while (!DEBUG_SERIAL) yield();
   DEBUG_SERIAL.println("\nSerial Initialized!");
 #endif
@@ -38,7 +39,7 @@ void setup() {
   tmcontroller.init();
 
   mode = tmcontroller.getMode();
-#ifdef VERBOSE
+#if (VERBOSE > 0)
   DEBUG_SERIAL.print("Starting Mode ");
   DEBUG_SERIAL.print(mode);
 #endif
