@@ -4,7 +4,8 @@
 Hardware and software solution that lets you use your MIDI devices in a _**Musical Metaverse**_. Connect any class-compliant MIDI device and map its MIDI input into OSC messages. 
 These OSC messages can then be sent to a VR/XR musical ecosystem (e.g., PatchWorld) or other compatible platforms.
 
-![docs/bridge_proto.jpg](docs/bridge_proto.jpg)
+![docs/box3.jpg](docs/box3.jpg)
+![docs/box1.jpg](docs/box1.jpg)
 
 ## Hardware
 The Bridge's hardware consists of the following components:
