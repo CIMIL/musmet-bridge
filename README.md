@@ -41,10 +41,10 @@ You can easily modify the code to customize the mapping.
 | MIDI Message               | Description                                        | Mapped | First OSC Message          | Second OSC Message         |
 |---------------------------|----------------------------------------------------|-----------|--------------------------|----------------------------|
 | Note On                   | Trigger notes                                      | ✅        | /ch{channel}note {pitch} | /ch{channel}nvalue {velocity}     |
-| Note Off                  | Release notes                                      | ✅        | /ch{channel}noteoff {pitch}  | /ch{channel}noteoff {zero_velocity}|
+| Note Off                  | Release notes                                      | ✅        | /ch{channel}noteoff {pitch}  | /ch{channel}noteoff {velocity}|
 | Control Changes (CC)      | Modify parameters such as volume, pan, modulation  | ✅        | /ch{channel}cc {controller} | /ch{channel}ccvalue {value}   |
 | Pitch Bending             | Adjust pitch dynamically                           | ✅        | /ch{channel}pitch {value}  | -                |
-| Aftertouch                | Respond to pressure after keys are pressed         | ✅        | /ch{channel}after {value} | -                |
+| Aftertouch                | Respond to pressure after keys are pressed         | ✅        | /ch{channel}pressure {value} | -                |
 | Program Change            | Switch instrument or patch presets                 | ❌        | -                     | -                         |
 | System Exclusive (SysEx)  | Manufacturer-specific messages                     | ❌        | -                     | -                         |
 | MIDI Time Code (MTC)      | Synchronize playback with other devices            | ❌        | -                     | -                         |
