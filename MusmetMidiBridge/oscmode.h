@@ -61,7 +61,7 @@ static void onNoteOff(Channel channel, byte note, byte velocity) {
 #if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: Note off#%u v=%u\r\n", channel, note, velocity);
 #endif
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(Utils::LED_PIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dnoteoff", (int)channel);
   sendOSCMessage(address, note);  // /ch<channel>noteoff (<note>,)
@@ -73,7 +73,7 @@ static void onNoteOn(Channel channel, byte note, byte velocity) {
 #if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: Note on#%u v=%u\r\n", channel, note, velocity);
 #endif
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(Utils::LED_PIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dnote", (int)channel);
   sendOSCMessage(address, note);  // /ch<channel>note (<note>,)
@@ -85,7 +85,7 @@ static void onControlChange(Channel channel, byte controller, byte value) {
 #if (VERBOSE > 0)
   DEBUG_SERIAL.printf("C%u: CC#%u=%u\r\n", channel, controller, value);
 #endif  
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(Utils::LED_PIN, LOW);
   char address[12];
   snprintf(address, sizeof(address), "/ch%dcc", (int)channel);
   sendOSCMessage(address, controller);  // /ch<channel>cc (<controller>,)
@@ -329,7 +329,7 @@ static void onMIDIconnect(uint8_t devAddr, uint8_t nInCables, uint8_t nOutCables
       registerMidiInCallbacks(devAddr, inCable);
     }
     // Turn on the LED to indicate that at least one device is connected
-    digitalWrite(LED_BUILTIN, HIGH);
+    analogWrite(Utils::LED_PIN, Utils::LED_INTENSITY);
   } else {
 #if (VERBOSE > 0)
     DEBUG_SERIAL.printf("unexpected device address %u already connected at idx=%d\r\n", devAddr, idx);
@@ -364,7 +364,7 @@ static void onMIDIdisconnect(uint8_t devAddr) {
     connectedDevAddrs[idx] = connectedDevAddrs[--numConnectedDevices];
     // if the last device was disconnected, turn off the LED
     if (numConnectedDevices == 0) {
-      digitalWrite(LED_BUILTIN, LOW);
+      digitalWrite(Utils::LED_PIN, LOW);
     }
   }
 #if (VERBOSE > 0)
@@ -377,29 +377,12 @@ static void onMIDIdisconnect(uint8_t devAddr) {
 
 
 /* MAIN LOOP FUNCTIONS */
-static void blinkLED(void) {
-  const uint32_t intervalMs = [] (uint32_t val) { return val == 0 ? 1000 : 100; }(numConnectedDevices);
-  static uint32_t startMs = 0;
-
-  static bool ledState = false;
-  if (millis() - startMs < intervalMs)
-    return;
-  startMs += intervalMs;
-
-  ledState = !ledState;
-    if (numConnectedDevices == 0) {
-      digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
-    } else {
-      digitalWrite(LED_BUILTIN, HIGH);
-    }
-}
-
 class OscMode {
 public:
   OscMode() {}
 
   void setup() {
-      pinMode(LED_BUILTIN, OUTPUT);
+      pinMode(Utils::LED_PIN, OUTPUT);
 #if (VERBOSE > 0)
     while (!DEBUG_SERIAL) ;  // wait for serial port
     DEBUG_SERIAL.println("\nAttempting to connect to WiFi");
@@ -467,7 +450,7 @@ public:
       usbhMIDI.readAll();
 
       // Other non-MIDI processing (Status LED, etc.)
-      blinkLED();
+      Utils::blinkLED(numConnectedDevices);
     }
   }
 };

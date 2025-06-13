@@ -19,19 +19,27 @@ public:
 
     // 5 quick flashes
     for (int i = 0; i < 5; i++) {
-      digitalWrite(ledPin, HIGH);
+      analogWrite(ledPin, Utils::LED_INTENSITY);
       delay(100);
       digitalWrite(ledPin, LOW);
       delay(100);
     }
     delay(1000);
 
+#ifdef VERBOSE
+      DEBUG_SERIAL.println("First 5 flashes DONE!");
+#endif
+
     for (int i = 0; i < 2; i++) {
       // Turn LED on
+#ifdef VERBOSE
+      DEBUG_SERIAL.print("MODE:");
+      DEBUG_SERIAL.println(i);
+#endif
       EEPROM.write(EEPROM_ADDR, i+1);
       EEPROM.commit();
       
-      digitalWrite(ledPin, HIGH);
+      analogWrite(ledPin, Utils::LED_INTENSITY);
       delay(flashDelay);
       
       // Turn LED off

@@ -2,7 +2,7 @@
 #define _UTILS_H
 
 
-#if (VERBOSE > 0)
+#ifdef VERBOSE
   #ifdef UPLOAD_METHOD_DEBUGPROBE
     #define DEBUG_SERIAL Serial1
   #else
@@ -109,6 +109,31 @@ String getNetworkOptions(){
   }
 
   return options;
+}
+
+// Status LED Blink function
+const short LED_PIN = 16;
+const short LED_INTENSITY = 40; 
+
+static void blinkLED(uint8_t numConnectedDevices) {
+  const uint32_t intervalMs = [] (uint32_t val) { return val == 0 ? 1000 : 100; }(numConnectedDevices);
+  static uint32_t startMs = 0;
+
+  static bool ledState = false;
+  if (millis() - startMs < intervalMs)
+    return;
+  startMs += intervalMs;
+
+  ledState = !ledState;
+    if (numConnectedDevices == 0) {
+      if (ledState){
+        analogWrite(LED_PIN, LED_INTENSITY);
+      } else {
+        digitalWrite(LED_PIN, LOW);
+      }
+    } else {
+      analogWrite(LED_PIN, LED_INTENSITY);
+    }
 }
 
 } // namespace Utils

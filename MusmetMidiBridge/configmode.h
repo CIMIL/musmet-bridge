@@ -1,29 +1,51 @@
+
 #ifndef _CONFIGMODE_H
 #define _CONFIGMODE_H
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include "index.h" // HTML main page
+#include <DNSServer.h>
+#include "index.h" // HTML main configuration page
 #include "saved.h" // HTML saved page
 #include "utils.h" // Read WiFi config from the filesystem
 
 
 const char *PICO_SSID = "PicoW_BRIDGE_Config"; // AP SSID
 const char *PICO_PASSWORD = "picopico"; // AP Password
+const char *TARGET_HOSTNAME = "bridge.conf";  
+
 
 class ConfigMode { 
   
-  // const byte DNS_PORT = 53;
-  // DNSServer dnsServer;
-  
+  const byte DNS_PORT = 53;
+  DNSServer dnsServer;
   WebServer server;
-  
+
+  // Redirect to "bridge.conf" 
+  void redirectToHostname() {
+        server.sendHeader("Location", "http://" + String(TARGET_HOSTNAME) + "/", true);
+        server.send(302, "text/html", "<html><body>Redirecting...</body></html>");
+  }
+
+  // Check if actual hostHeader is "bridge.conf"
+  void checkHostHeader() {
+        if (server.hostHeader() != TARGET_HOSTNAME) {
+#ifdef VERBOSE
+    DEBUG_SERIAL.print("Redirecting...");
+    DEBUG_SERIAL.println(server.hostHeader());
+#endif
+            redirectToHostname();
+            return;
+        }
+    }
   
   // Serve the main page
   void handleRoot() {
 #ifdef VERBOSE
     DEBUG_SERIAL.println("Serving root page.");
 #endif
+    checkHostHeader(); 
+
     String page = webpage;
     page.replace("%NETWORK_OPTIONS%", Utils::getNetworkOptions());
     //page.replace("%CONFIG_ssid%", Utils::readWiFiConfig(Utils::ConfigLine::SSID));
@@ -35,6 +57,9 @@ class ConfigMode {
   
   // Handle saving config
   void handleSave() {
+    
+    checkHostHeader();
+
     if (server.hasArg("config_ssid") && server.hasArg("config_pw") &&
       server.hasArg("config_ip") && server.hasArg("config_port")) {
   
@@ -57,6 +82,7 @@ class ConfigMode {
   
   // Print to DEBUG_SERIAL
   void handlePrint() {
+    checkHostHeader();
 #ifdef VERBOSE
     DEBUG_SERIAL.println("---- Config.txt contents ----");
     DEBUG_SERIAL.println("SSID: " + Utils::readWiFiConfig(Utils::ConfigLine::SSID));
@@ -82,17 +108,16 @@ public:
     Utils::startLittleFS(); // Start LittleFS
   
     // Set up Soft AP
-    // WiFi.setHostname("picobridge");
     WiFi.softAP(PICO_SSID, PICO_PASSWORD);
 #ifdef VERBOSE
     DEBUG_SERIAL.println("Access Point started");
     DEBUG_SERIAL.print("AP IP address: ");
     DEBUG_SERIAL.println(WiFi.softAPIP());
+    DEBUG_SERIAL.println(WiFi.getHostname());
 #endif
-    // DEBUG_SERIAL.println(WiFi.getHostname());
   
     // Start DNS server to redirect all domains to our IP
-    // dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
   
     // Web server routes
     server.on("/", [this]() { 
@@ -104,6 +129,9 @@ public:
     server.on("/print", [this]() { 
             this->handlePrint(); 
         });
+    server.onNotFound([this]() { 
+            this->redirectToHostname(); 
+        });
   
     // Start server
     server.begin();
@@ -114,8 +142,9 @@ public:
       
   void loop() {
     if (Utils::little_started){
-      // dnsServer.processNextRequest();
+      dnsServer.processNextRequest();
       server.handleClient();
+      Utils::blinkLED(0);
     }
   }
 };

@@ -6,8 +6,7 @@
 #include "utils.h"   
 #include "twomode.h"
 
-const short LED_PIN = LED_BUILTIN;
-TwoMode tmcontroller(LED_PIN);
+TwoMode tmcontroller(Utils::LED_PIN);
 
 #include "oscmode.h"
 #include "configmode.h"
@@ -29,7 +28,7 @@ void setup() {
   DEBUG_SERIAL.begin(115200);
 #endif
   
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(Utils::LED_PIN, OUTPUT);
 
 #if (VERBOSE > 0)
   while (!DEBUG_SERIAL) yield();
@@ -41,7 +40,7 @@ void setup() {
   mode = tmcontroller.getMode();
 #if (VERBOSE > 0)
   DEBUG_SERIAL.print("Starting Mode ");
-  DEBUG_SERIAL.print(mode);
+  DEBUG_SERIAL.println(mode);
 #endif
 
   if (mode == OSC_MODE)
