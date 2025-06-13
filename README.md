@@ -36,7 +36,7 @@ To debug the project and view serial messages, you will need a DebugProbe (you c
 
 ## MIDI2OSC Mapping
 
-- ✅ **Note On**: Trigger notes (_/note{channel} ({pitch}, {velocity})_, for example: `/note1 (60, 80)`).
+- ✅ **Note On**: Trigger notes (_/ch{channel}note ({pitch}, /ch{channel}nvalue ({velocity},), for example: `/ch1note (60,) `/ch1nvalue (80,)`).
 - ✅ **Note Off**: Release notes (_/noteoff{channel} ({pitch}, {zero_velocity})_, for example: `/noteoff1 (60, 0)`).
 - ✅ **Pitch Bending**: Adjust pitch dynamically (_/pitch{channel} ({value},)_, for example: `/pitch4 (7249,)`).
 - ✅ **Control Changes (CC)**: Modify parameters such as volume, pan, or modulation (_/cc{channel} ({controller}, {value})_, for example: `/cc3 (13, 120)`).
@@ -49,3 +49,5 @@ To debug the project and view serial messages, you will need a DebugProbe (you c
 - ❌ **Song Select**: Choose a specific song in a sequence.
 - ❌ **Song Position Pointer**: Indicate a specific position in a song for playback.
 - ❌ **System Real-Time Messages**: Clock, start, stop, and continue for synchronization.
+ 
+ **NOTE:** for compatibility with PatchWorld, which can only receive one value per OSC message, each MIDI message containing 2 pieces of information (e.g. noteon: pitch and velocity) has been split into 2 separate messages.
