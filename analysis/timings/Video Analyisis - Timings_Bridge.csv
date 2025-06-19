@@ -1,0 +1,5 @@
+Device,Room,Bootstrap,WiFi Config,MIDI Connection,OSC Configuration,Wifi+OSC
+Bridge,1,14,194,14,41,235
+Bridge,2,19,209,10,17,226
+Bridge,1,50,198,180,247,445
+Bridge,2,30,60,9,19,79
