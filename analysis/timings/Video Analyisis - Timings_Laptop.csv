@@ -1,5 +1,9 @@
 Device,Room,Bootstrap,WiFi Config,MIDI Connection,OSC Configuration,Wifi+OSC,
-Laptop,1,82,54,244,49,103,429
-Laptop,2,70,10,49,35,45,164
-Laptop,1,144,27,226,58,85,455
-Laptop,2,96,22,46,9,31,173
+Laptop,1,82,54,244,49,103
+Laptop,2,70,10,49,35,45
+Laptop,1,144,27,226,58,85
+Laptop,2,96,22,46,9,31
+Laptop,1,124,33,185,65,98
+Laptop,2,84,27,56,16,43
+Laptop,1,123,24,108,48,72
+Laptop,2,165,23,36,18,41
